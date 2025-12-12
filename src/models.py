@@ -3,7 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 #@title U-Net detektor
-
+"""The network follows a U-Net architecture with an encoder–decoder structure, 
+processing 128×128 input patches and using feature depths of 64–128–256–512–1024”
+"""
 # Double Convolution Block
 class DoubleConv(nn.Module):
     """(Conv → ReLU) × 2"""
@@ -53,8 +55,10 @@ class Up(nn.Module):
         # Skip connection
         x = torch.cat([x2, x1], dim=1)
         return self.conv(x)
+        
 #FULL U-Net MODEL
 class UNet(nn.Module):
+      """Standard U-Net architecture for heatmap-based object detection."""
     def __init__(self, n_channels=1, n_classes=1):
         super().__init__()
 
@@ -92,7 +96,9 @@ class UNet(nn.Module):
         return logits
 
 #@title Res-U-Net detektor
-
+"""A Residual U-Net architecture processing 128×128 input patches with feature depths [64, 128, 256, 512]
+and a 1024-channel bottleneck, producing a single-channel output heatmap
+"""
 class ResidualConv(nn.Module):
     """Residual convolution block for ResUNet."""
     def __init__(self, in_channels, out_channels, stride=1):
@@ -118,6 +124,7 @@ class ResidualConv(nn.Module):
 
 
 class ResUNet(nn.Module):
+    """Residual U-Net variant with skip connections inside convolution blocks."""
     def __init__(self, in_channels=1, out_channels=1, features=[64,128,256,512]):
         super().__init__()
         self.encoder = nn.ModuleList()
