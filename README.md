@@ -1,6 +1,7 @@
 # Detekce klatrinem potažených jamek
 
 ## Abstrakt
+
 Tento projekt se zabývá aplikací metod strojového učení při analýze mikroskopických dat TIRF-SIM s cílem detekovat a sledovat klatrinem potažené jamky (CCP) během endocytózy. Výchozí baseline metody (jednoduchý morfologický detektor, CNN a Nearest-Neighbour tracker) vykazovaly nízkou přesnost, a proto byly implementovány a experimentálně porovnány pokročilejší přístupy.
 
 V projektu byly porovnávány různé architektury neuronových sítí (U-Net, Res-U-Net), různé postupy filtrování výstupu a několik metod trackingu ( Kalmanův filtr, Nearest-Neighbour přístup a knihovna Norfair). Součástí práce bylo rovněž ladění parametrů (threshold, max_dist, sigma).
