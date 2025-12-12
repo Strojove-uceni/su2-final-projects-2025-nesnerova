@@ -2,11 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-#@title U-Net detektor
-"""The network follows a U-Net architecture with an encoder–decoder structure, 
-processing 128×128 input patches and using feature depths of 64–128–256–512–1024”
-"""
-# Double Convolution Block
+# =========================
+# U-NET
+# =========================
+
 class DoubleConv(nn.Module):
     """(Conv → ReLU) × 2"""
     def __init__(self, in_channels, out_channels):
@@ -15,50 +14,55 @@ class DoubleConv(nn.Module):
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
         )
 
     def forward(self, x):
         return self.double_conv(x)
 
-# Downsampling Block
+
 class Down(nn.Module):
     """MaxPool → DoubleConv"""
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.net = nn.Sequential(
             nn.MaxPool2d(2),
-            DoubleConv(in_channels, out_channels)
+            DoubleConv(in_channels, out_channels),
         )
 
     def forward(self, x):
         return self.net(x)
 
-# Upsampling Block with Cropping Fix
+
 class Up(nn.Module):
     """Upsampling → Concatenate → DoubleConv"""
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
+        self.up = nn.ConvTranspose2d(
+            in_channels, in_channels // 2, kernel_size=2, stride=2
+        )
         self.conv = DoubleConv(in_channels, out_channels)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
 
-        # FIX — crop encoder maps
-        diffY = x2.size()[2] - x1.size()[2]
-        diffX = x2.size()[3] - x1.size()[3]
+        # crop encoder feature map if needed
+        diffY = x2.size(2) - x1.size(2)
+        diffX = x2.size(3) - x1.size(3)
 
-        x2 = x2[:, :, diffY // 2 : x2.size()[2] - diffY // 2,
-                     diffX // 2 : x2.size()[3] - diffX // 2]
+        x2 = x2[
+            :,
+            :,
+            diffY // 2 : x2.size(2) - diffY // 2,
+            diffX // 2 : x2.size(3) - diffX // 2,
+        ]
 
-        # Skip connection
         x = torch.cat([x2, x1], dim=1)
         return self.conv(x)
-        
-#FULL U-Net MODEL
+
+
 class UNet(nn.Module):
-      """Standard U-Net architecture for heatmap-based object detection."""
+    """Standard U-Net architecture for heatmap-based object detection."""
     def __init__(self, n_channels=1, n_classes=1):
         super().__init__()
 
@@ -67,7 +71,7 @@ class UNet(nn.Module):
         self.down1 = Down(64, 128)
         self.down2 = Down(128, 256)
         self.down3 = Down(256, 512)
-        self.down4 = Down(512, 1024)  # bottleneck
+        self.down4 = Down(512, 1024)
 
         # Decoder
         self.up1 = Up(1024, 512)
@@ -75,32 +79,30 @@ class UNet(nn.Module):
         self.up3 = Up(256, 128)
         self.up4 = Up(128, 64)
 
-        # Output Layer (heatmap)
+        # Output
         self.outc = nn.Conv2d(64, n_classes, kernel_size=1)
 
     def forward(self, x):
-        # Encoder
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
 
-        # Decoder
         x = self.up1(x5, x4)
         x = self.up2(x, x3)
         x = self.up3(x, x2)
         x = self.up4(x, x1)
 
-        logits = self.outc(x)
-        return logits
+        return self.outc(x)
 
-#@title Res-U-Net detektor
-"""A Residual U-Net architecture processing 128×128 input patches with feature depths [64, 128, 256, 512]
-and a 1024-channel bottleneck, producing a single-channel output heatmap
-"""
+
+# =========================
+# RES U-NET
+# =========================
+
 class ResidualConv(nn.Module):
-    """Residual convolution block for ResUNet."""
+    """Residual convolution block."""
     def __init__(self, in_channels, out_channels, stride=1):
         super().__init__()
 
@@ -109,14 +111,14 @@ class ResidualConv(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
             nn.Conv2d(out_channels, out_channels, 3, padding=1),
-            nn.BatchNorm2d(out_channels)
+            nn.BatchNorm2d(out_channels),
         )
 
-        self.skip = nn.Sequential()
+        self.skip = nn.Identity()
         if in_channels != out_channels or stride != 1:
             self.skip = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride),
-                nn.BatchNorm2d(out_channels)
+                nn.BatchNorm2d(out_channels),
             )
 
     def forward(self, x):
@@ -124,9 +126,10 @@ class ResidualConv(nn.Module):
 
 
 class ResUNet(nn.Module):
-    """Residual U-Net variant with skip connections inside convolution blocks."""
-    def __init__(self, in_channels=1, out_channels=1, features=[64,128,256,512]):
+    """Residual U-Net variant."""
+    def __init__(self, in_channels=1, out_channels=1, features=(64, 128, 256, 512)):
         super().__init__()
+
         self.encoder = nn.ModuleList()
         self.decoder = nn.ModuleList()
 
@@ -136,38 +139,39 @@ class ResUNet(nn.Module):
             in_channels = feature
 
         # Bottleneck
-        self.bottleneck = ResidualConv(features[-1], features[-1]*2)
+        self.bottleneck = ResidualConv(features[-1], features[-1] * 2)
 
         # Decoder
-        rev = list(reversed(features))
-        for feature in rev:
+        for feature in reversed(features):
             self.decoder.append(
-                nn.ConvTranspose2d(feature*2, feature, kernel_size=2, stride=2)
+                nn.ConvTranspose2d(feature * 2, feature, kernel_size=2, stride=2)
             )
             self.decoder.append(
-                ResidualConv(feature*2, feature)
+                ResidualConv(feature * 2, feature)
             )
 
-        # Output
         self.final = nn.Conv2d(features[0], out_channels, kernel_size=1)
 
     def forward(self, x):
         skips = []
 
-        for down in self.encoder:
-            x = down(x)
+        for block in self.encoder:
+            x = block(x)
             skips.append(x)
             x = F.max_pool2d(x, 2)
 
         x = self.bottleneck(x)
         skips = skips[::-1]
 
-        for idx in range(0, len(self.decoder), 2):
-            x = self.decoder[idx](x)  # upsample
-            skip = skips[idx//2]
-            if x.shape != skip.shape:
+        for i in range(0, len(self.decoder), 2):
+            x = self.decoder[i](x)
+            skip = skips[i // 2]
+
+            if x.shape[2:] != skip.shape[2:]:
                 x = F.interpolate(x, size=skip.shape[2:])
+
             x = torch.cat((skip, x), dim=1)
-            x = self.decoder[idx+1](x)
+            x = self.decoder[i + 1](x)
 
         return self.final(x)
+
