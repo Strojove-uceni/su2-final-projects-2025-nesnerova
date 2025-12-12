@@ -1,6 +1,14 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/ytM8p5PU)
-*Reminder*
-*   *Do not miss [deadline](https://su2.utia.cas.cz/labs.html#projects) for uploading your implementation and documentation of your final project.*
-*   *Include working demo in Colab, in which you clearly demonstrate your results. Please refer to the Implementation section on the [labs website](https://su2.utia.cas.cz/labs.html#projects).*
-*   *Do not upload huge datasets to GitHub repository.*
+#Detekce klatrinem potažených jamek
 
+##Abstrakt
+Tento projekt se zabývá aplikací metod strojového učení při analýze mikroskopických dat TIRF-SIM s cílem detekovat a sledovat klatrinem potažené jamky (CCP) během endocytózy. Výchozí baseline metody (jednoduchý morfologický detektor, CNN a Nearest-Neighbour tracker) vykazovaly nízkou přesnost, a proto byly implementovány a experimentálně porovnány pokročilejší přístupy.
+
+V projektu byly testovány různé architektury neuronových sítí (U-Net, Res-U-Net), různé postupy filtrování výstupu a několik metod trackingu ( Kalmanův filtr, Nearest-Neighbour přístup a knihovna Norfair). Součástí práce bylo rovněž ladění parametrů (threshold, max_dist, sigma).
+
+Přestože se nepodařilo překonat referenční metodu SOTA, dosažené výsledky výrazně překonaly původní baseline a přiblížily se kvalitě SOTA v metrikách HOTA, AssA a DetA. Projekt tak demonstruje, jak lze kombinací pokročilejších segmentačních modelů a sofistikovanějšího trackingu významně zlepšit automatizovanou analýzu dynamiky CCP.
+
+##Soubory
+- hlavním souborem je SU2_main
+- ve složce [src](https://github.com/Strojove-uceni/su2-final-projects-2025-nesnerova/tree/main/src) jsou skripty obsahující definice modelů a trackerů
+- soubory  [training_unet](https://raw.githubusercontent.com/Strojove-uceni/su2-final-projects-2025-nesnerova/refs/heads/main/training_unet.ipynb)  a [training_resunet](https://raw.githubusercontent.com/Strojove-uceni/su2-final-projects-2025-nesnerova/refs/heads/main/training_resunet.ipynb) představují trénování dvou modelů, přičemž data z trénování jsou do hlavního souboru stažena z Google Drive
+  
