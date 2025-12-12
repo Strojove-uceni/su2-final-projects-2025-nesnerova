@@ -1,6 +1,3 @@
-!pip install filterpy
-!pip install norfair
-
 import numpy as np
 import pandas as pd
 from norfair import Detection, Tracker
