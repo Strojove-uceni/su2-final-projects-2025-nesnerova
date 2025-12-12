@@ -118,7 +118,7 @@ def hungarian_association(tracks, detections, max_dist=6):
   for i, t in enumerate(tracks):
         tx, ty = t.predict()
         for j, (x, y) in enumerate(detections):
-            cost[i, j] = np.hypot(tx - x, ty - y)
+            cost[i, j] = np.hypot(tx - x, ty - y) #eucleidian
 
   row_ind, col_ind = linear_sum_assignment(cost)
 
@@ -177,8 +177,9 @@ def track_ccp_sequence(detections_per_frame, max_dist):
 #@title Noirfar tracker
 def track_with_norfair(detections_per_frame, max_dist=8):
     """
-    Norfair tracker compatible with latest Norfair API.
+    Track objects using the Norfair multi-object tracker.
     """
+    # Initialize Norfair tracker with L1 (Manhattan) distance
     tracker = Tracker(
     distance_function="cityblock",
     distance_threshold=max_dist
